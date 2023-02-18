@@ -1,9 +1,12 @@
-use opencv::{core, highgui, prelude::*, videoio};
+use opencv::core::Size;
+use opencv::{core, highgui, imgproc, prelude::*, videoio};
 
 fn run() -> opencv::Result<()> {
+    // window
     let window = "video capture";
     highgui::named_window(window, 1)?;
 
+    // read file
     let file_name = "test.mp4";
     let mut cam = videoio::VideoCapture::from_file(&file_name, videoio::CAP_ANY)?;
     let opened_file = videoio::VideoCapture::open_file(&mut cam, &file_name, videoio::CAP_ANY)?;
@@ -24,7 +27,12 @@ fn run() -> opencv::Result<()> {
     loop {
         videoio::VideoCapture::read(&mut cam, &mut frame)?;
         if frame.size()?.width > 0 {
-            highgui::imshow(window, &frame)?;
+            // resize
+            let mut resized_frame = Mat::default();
+            imgproc::resize(&frame, &mut resized_frame, Size::default(), 0.5, 0.5, 1)?;
+            // show
+            highgui::imshow(window, &resized_frame)?;
+            // key wait
             let key = highgui::wait_key(10)?;
             if key > 0 && key != 255 {
                 videoio::VideoCapture::release(&mut cam)?;
