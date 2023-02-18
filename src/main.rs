@@ -46,7 +46,7 @@ fn run() -> opencv::Result<()> {
                 &gray.channels()
             );
             // extract features
-            let mut features = Mat::default();
+            let mut features = opencv::types::VectorOfPoint2f::new();
             imgproc::good_features_to_track(
                 &gray,
                 &mut features,
@@ -59,6 +59,9 @@ fn run() -> opencv::Result<()> {
                 0.04,
             )?;
             // show
+            for f in features {
+                println!("{:?}", f);
+            }
             highgui::imshow(window, &resized_frame)?;
             // highgui::imshow(window, &gray)?;
             // key wait
