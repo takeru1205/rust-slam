@@ -30,8 +30,37 @@ fn run() -> opencv::Result<()> {
             // resize
             let mut resized_frame = Mat::default();
             imgproc::resize(&frame, &mut resized_frame, Size::default(), 0.5, 0.5, 1)?;
+            println!(
+                "cols: {}, rows: {}, channels: {}",
+                &resized_frame.cols(),
+                &resized_frame.rows(),
+                &resized_frame.channels()
+            );
+            // convert to gray scale
+            let mut gray = Mat::default();
+            imgproc::cvt_color(&resized_frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+            println!(
+                "cols: {}, rows: {}, channels: {}",
+                &gray.cols(),
+                &gray.rows(),
+                &gray.channels()
+            );
+            // extract features
+            let mut features = Mat::default();
+            imgproc::good_features_to_track(
+                &gray,
+                &mut features,
+                25,
+                0.01,
+                2.5,
+                &core::no_array(),
+                1,
+                false,
+                0.04,
+            )?;
             // show
             highgui::imshow(window, &resized_frame)?;
+            // highgui::imshow(window, &gray)?;
             // key wait
             let key = highgui::wait_key(10)?;
             if key > 0 && key != 255 {
