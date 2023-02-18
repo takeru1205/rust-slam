@@ -1,5 +1,5 @@
 use opencv::core::Size;
-use opencv::{core, highgui, imgproc, prelude::*, videoio};
+use opencv::{core, features2d, highgui, imgproc, prelude::*, videoio};
 
 fn run() -> opencv::Result<()> {
     // window
@@ -36,6 +36,7 @@ fn run() -> opencv::Result<()> {
                 &resized_frame.rows(),
                 &resized_frame.channels()
             );
+
             // convert to gray scale
             let mut gray = Mat::default();
             imgproc::cvt_color(&resized_frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
@@ -45,25 +46,47 @@ fn run() -> opencv::Result<()> {
                 &gray.rows(),
                 &gray.channels()
             );
+
             // extract features
             let mut features = opencv::types::VectorOfPoint2f::new();
             imgproc::good_features_to_track(
                 &gray,
                 &mut features,
-                25,
+                500,
                 0.01,
-                2.5,
+                10.0,
                 &core::no_array(),
                 1,
                 false,
                 0.04,
             )?;
-            // show
+
+            // convert point vector to key point vector
+            let mut kps = opencv::types::VectorOfKeyPoint::new();
+            core::KeyPoint::convert_to(&features, &mut kps, 1.0, 1.0, 0, -1)?;
+
             for f in features {
                 println!("{:?}", f);
             }
-            highgui::imshow(window, &resized_frame)?;
-            // highgui::imshow(window, &gray)?;
+
+            // draw keypoints on gbr image
+            let mut image_with_keypoints = Mat::default();
+            opencv::opencv_branch_4! {
+                let default_draw_matches_flags = features2d::DrawMatchesFlags::DEFAULT;
+            }
+            opencv::not_opencv_branch_4! {
+                let default_draw_matches_flags = features2d::DrawMatchesFlags_DEFAULT;
+            }
+            features2d::draw_keypoints(
+                &resized_frame,
+                &kps,
+                &mut image_with_keypoints,
+                core::Scalar::all(-1f64),
+                default_draw_matches_flags,
+            )?;
+
+            // image show
+            highgui::imshow(window, &image_with_keypoints)?;
             // key wait
             let key = highgui::wait_key(10)?;
             if key > 0 && key != 255 {
