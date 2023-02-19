@@ -70,18 +70,12 @@ fn run() -> opencv::Result<()> {
 
             // draw keypoints on gbr image
             let mut image_with_keypoints = Mat::default();
-            opencv::opencv_branch_4! {
-                let default_draw_matches_flags = features2d::DrawMatchesFlags::DEFAULT;
-            }
-            opencv::not_opencv_branch_4! {
-                let default_draw_matches_flags = features2d::DrawMatchesFlags_DEFAULT;
-            }
             features2d::draw_keypoints(
                 &resized_frame,
                 &kps,
                 &mut image_with_keypoints,
                 core::Scalar::from([0.0, 255.0, 0.0, 255.0]), // green
-                default_draw_matches_flags,
+                features2d::DrawMatchesFlags::DEFAULT,
             )?;
 
             // image show
