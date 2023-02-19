@@ -36,7 +36,6 @@ fn run() -> opencv::Result<()> {
                 &resized_frame.rows(),
                 &resized_frame.channels()
             );
-
             // convert to gray scale
             let mut gray = Mat::default();
             imgproc::cvt_color(&resized_frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
@@ -81,7 +80,7 @@ fn run() -> opencv::Result<()> {
                 &resized_frame,
                 &kps,
                 &mut image_with_keypoints,
-                core::Scalar::all(-1f64),
+                core::Scalar::from([0.0, 255.0, 0.0, 255.0]), // green
                 default_draw_matches_flags,
             )?;
 
