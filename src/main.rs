@@ -2,7 +2,7 @@ use opencv::core::Size;
 use opencv::types;
 use opencv::{core, features2d, highgui, imgproc, prelude::*, videoio};
 
-const NFEATURES: i32 = 500;
+const NFEATURES: i32 = 100;
 const SCALE_FACTOR: f32 = 1.2;
 const NLEVELS: i32 = 8;
 const EDGE_THRESHOLD: i32 = 100;
@@ -131,40 +131,50 @@ fn run() -> opencv::Result<()> {
 
             // matching
             let mut matches = types::VectorOfVectorOfDMatch::new();
-            let matcher = <dyn features2d::DescriptorMatcher>::create("BruteForce-Hamming");
+            let matcher = <dyn features2d::DescriptorMatcher>::create("BruteForce");
             matcher?.knn_train_match(
                 &desc,
                 &next_desc,
                 &mut matches,
-                2,
+                1,
                 &core::no_array(),
                 false,
             )?;
 
-            // draw matching line
-            let mut next_image_with_matches = Mat::default();
-            features2d::draw_matches_knn(
-                &resized_frame,
-                &kps,
-                &next_resized_frame,
-                &next_kps,
-                &matches,
-                &mut next_image_with_matches,
-                core::Scalar::all(-1.0),
-                core::Scalar::all(-1.0),
-                &core::Vector::new(),
-                features2d::DrawMatchesFlags::DEFAULT,
+            // draw matching lines between preframe and current frame
+            let mut pts = types::VectorOfVectorOfPoint::new();
+            for m in &matches {
+                let idx = m.get(0)?.query_idx;
+                let next_idx = m.get(0)?.train_idx;
+                // TODO: write more smart
+                let kp = kps.get(idx as usize)?.pt();
+                let next_kp = next_kps.get(next_idx as usize)?.pt();
+                let pt = types::VectorOfPoint::from(vec![
+                    core::Point::new(kp.x.round() as i32, kp.y.round() as i32),
+                    core::Point::new(next_kp.x.round() as i32, next_kp.y.round() as i32),
+                ]);
+                pts.push(pt);
+            }
+
+            imgproc::polylines(
+                &mut next_resized_frame,
+                &pts,
+                false,
+                core::Scalar::from([0.0, 255.0, 0.0, 255.0]), // green
+                1,
+                8,
+                0,
             )?;
 
             // image show
-            highgui::imshow(window, &next_image_with_matches)?;
+            highgui::imshow(window, &next_resized_frame)?;
             // key wait
             let key = highgui::wait_key(10)?;
             if key > 0 && key != 255 {
                 videoio::VideoCapture::release(&mut cam)?;
                 break;
             }
-            resized_frame = next_resized_frame;
+            // resized_frame = next_resized_frame;
             kps = next_kps;
         } else {
             println!("No more frames!");
