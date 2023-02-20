@@ -142,6 +142,7 @@ fn run() -> opencv::Result<()> {
             )?;
 
             // draw matching lines between preframe and current frame
+            // TODO: Filter matches using the Lowe's ratio test
             let mut pts = types::VectorOfVectorOfPoint::new();
             for m in &matches {
                 let idx = m.get(0)?.query_idx;
