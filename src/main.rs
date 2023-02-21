@@ -16,7 +16,6 @@ fn run() -> opencv::Result<()> {
     // window
     let window = "video capture";
     highgui::named_window(window, 1)?;
-
     // read file
     let file_name = "test.mp4";
     let mut cam = videoio::VideoCapture::from_file(&file_name, videoio::CAP_ANY)?;
@@ -132,7 +131,7 @@ fn run() -> opencv::Result<()> {
 
             // matching
             let mut matches = types::VectorOfVectorOfDMatch::new();
-            let matcher = <dyn features2d::DescriptorMatcher>::create("BruteForce");
+            let matcher = <dyn features2d::DescriptorMatcher>::create("BruteForce-Hamming(2)");
             matcher?.knn_train_match(
                 &desc,
                 &next_desc,
