@@ -2,7 +2,7 @@ use opencv::core::Size;
 use opencv::types;
 use opencv::{core, features2d, highgui, imgproc, prelude::*, videoio};
 
-const NFEATURES: i32 = 100;
+const NFEATURES: i32 = 500;
 const SCALE_FACTOR: f32 = 1.2;
 const NLEVELS: i32 = 8;
 const EDGE_THRESHOLD: i32 = 100;
@@ -10,6 +10,7 @@ const FIRST_LEVEL: i32 = 1;
 const WTA_K: i32 = 3;
 const PATCH_SIZE: i32 = 31;
 const FAST_THRESHOLD: i32 = 20;
+const MATCH_THRESHOLD: f32 = 0.15;
 
 fn run() -> opencv::Result<()> {
     // window
@@ -97,8 +98,8 @@ fn run() -> opencv::Result<()> {
 
             // draw keypoints on gbr image
             let mut next_kps = opencv::types::VectorOfKeyPoint::new();
-            let mut next_image_with_keypoints = Mat::default();
             let mut next_desc = core::Mat::default();
+            let mut next_image_with_keypoints = Mat::default();
 
             // ORB detector
             let next_detector = <dyn opencv::prelude::ORB>::create(
@@ -136,25 +137,26 @@ fn run() -> opencv::Result<()> {
                 &desc,
                 &next_desc,
                 &mut matches,
-                1,
+                2,
                 &core::no_array(),
                 false,
             )?;
 
             // draw matching lines between preframe and current frame
-            // TODO: Filter matches using the Lowe's ratio test
+            // wchich filtered Lowe's ratio test
             let mut pts = types::VectorOfVectorOfPoint::new();
             for m in &matches {
-                let idx = m.get(0)?.query_idx;
-                let next_idx = m.get(0)?.train_idx;
-                // TODO: write more smart
-                let kp = kps.get(idx as usize)?.pt();
-                let next_kp = next_kps.get(next_idx as usize)?.pt();
-                let pt = types::VectorOfPoint::from(vec![
-                    core::Point::new(kp.x.round() as i32, kp.y.round() as i32),
-                    core::Point::new(next_kp.x.round() as i32, next_kp.y.round() as i32),
-                ]);
-                pts.push(pt);
+                if m.get(0)?.distance < MATCH_THRESHOLD * m.get(1)?.distance {
+                    let idx = m.get(0)?.query_idx;
+                    let next_idx = m.get(0)?.train_idx;
+                    let kp = kps.get(idx as usize)?.pt();
+                    let next_kp = next_kps.get(next_idx as usize)?.pt();
+                    let pt = types::VectorOfPoint::from(vec![
+                        core::Point::new(kp.x.round() as i32, kp.y.round() as i32),
+                        core::Point::new(next_kp.x.round() as i32, next_kp.y.round() as i32),
+                    ]);
+                    pts.push(pt);
+                };
             }
 
             imgproc::polylines(
@@ -162,7 +164,7 @@ fn run() -> opencv::Result<()> {
                 &pts,
                 false,
                 core::Scalar::from([0.0, 255.0, 0.0, 255.0]), // green
-                1,
+                2,
                 8,
                 0,
             )?;
@@ -175,8 +177,8 @@ fn run() -> opencv::Result<()> {
                 videoio::VideoCapture::release(&mut cam)?;
                 break;
             }
-            // resized_frame = next_resized_frame;
             kps = next_kps;
+            desc = next_desc;
         } else {
             println!("No more frames!");
             videoio::VideoCapture::release(&mut cam)?;
