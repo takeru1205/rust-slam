@@ -1,16 +1,8 @@
 use opencv::{core, features2d, highgui, imgproc, prelude::*, videoio};
+mod feature_detect;
 mod matching;
 mod preprocess;
 mod read;
-
-const NFEATURES: i32 = 500;
-const SCALE_FACTOR: f32 = 1.2;
-const NLEVELS: i32 = 8;
-const EDGE_THRESHOLD: i32 = 100;
-const FIRST_LEVEL: i32 = 1;
-const WTA_K: i32 = 3;
-const PATCH_SIZE: i32 = 31;
-const FAST_THRESHOLD: i32 = 20;
 
 fn run() -> opencv::Result<()> {
     // window
@@ -38,58 +30,21 @@ fn run() -> opencv::Result<()> {
         &gray.channels()
     );
 
-    let detector = <dyn opencv::prelude::ORB>::create(
-        NFEATURES,
-        SCALE_FACTOR,
-        NLEVELS,
-        EDGE_THRESHOLD,
-        FIRST_LEVEL,
-        WTA_K,
-        features2d::ORB_ScoreType::HARRIS_SCORE,
-        PATCH_SIZE,
-        FAST_THRESHOLD,
-    );
-
-    // extract features
-    let mut desc = core::Mat::default();
-    // convert point vector to key point vector
-    let mut kps = opencv::types::VectorOfKeyPoint::new();
+    // feature extraction
+    let (mut kps, mut desc) = feature_detect::feature_detect(&resized_frame, &gray)?;
     let mut next_frame = core::Mat::default();
-
-    detector?.detect_and_compute(&gray, &core::no_array(), &mut kps, &mut desc, false)?;
-
     loop {
         videoio::VideoCapture::read(&mut cam, &mut next_frame)?;
         if next_frame.size()?.width > 0 {
             // resize and convert to gray scale frame
             let (mut next_resized_frame, next_gray) = preprocess::preprocess(&next_frame)?;
 
+            // feature extraction
+            let (next_kps, next_desc) =
+                feature_detect::feature_detect(&next_resized_frame, &next_gray)?;
+
             // draw keypoints on gbr image
-            let mut next_kps = opencv::types::VectorOfKeyPoint::new();
-            let mut next_desc = core::Mat::default();
             let mut next_image_with_keypoints = Mat::default();
-
-            // ORB detector
-            let next_detector = <dyn opencv::prelude::ORB>::create(
-                NFEATURES,
-                SCALE_FACTOR,
-                NLEVELS,
-                EDGE_THRESHOLD,
-                FIRST_LEVEL,
-                WTA_K,
-                features2d::ORB_ScoreType::HARRIS_SCORE,
-                PATCH_SIZE,
-                FAST_THRESHOLD,
-            );
-
-            next_detector?.detect_and_compute(
-                &next_gray,
-                &core::no_array(),
-                &mut next_kps,
-                &mut next_desc,
-                false,
-            )?;
-
             features2d::draw_keypoints(
                 &next_resized_frame,
                 &next_kps,
