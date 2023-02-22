@@ -20,7 +20,7 @@ fn run() -> opencv::Result<()> {
     let frame_size = core::Size::new(960, 540);
     println!("{:?}", frame_size);
     let mut writer = videoio::VideoWriter::new(
-        "output.mp4",
+        "outputs/output.mp4",
         videoio::VideoWriter::fourcc('h', '2', '6', '4')?,
         cam.get(videoio::CAP_PROP_FPS)?,
         frame_size,
