@@ -1,7 +1,15 @@
 use opencv::types;
 use opencv::{core, features2d, prelude::*};
 
-const MATCH_THRESHOLD: f32 = 0.15;
+const MATCH_THRESHOLD: f32 = 0.7;
+
+// calc distance between keypoints
+fn calc_distance(points: &types::VectorOfPoint) -> opencv::Result<f32> {
+    let p0 = points.get(0)?;
+    let p1 = points.get(1)?;
+    let distance = ((p1.x - p0.x).pow(2) as f32 + (p1.y - p0.y).pow(2) as f32).sqrt();
+    Ok(distance)
+}
 
 pub fn knnmatch(
     kps: types::VectorOfKeyPoint,
@@ -26,6 +34,10 @@ pub fn knnmatch(
                 core::Point::new(kp.x.round() as i32, kp.y.round() as i32),
                 core::Point::new(next_kp.x.round() as i32, next_kp.y.round() as i32),
             ]);
+            // if unrealistic distance, do not recognize as keypoint
+            if calc_distance(&pt).unwrap() >= 30.0 {
+                continue;
+            };
             pts.push(pt);
         };
     }
