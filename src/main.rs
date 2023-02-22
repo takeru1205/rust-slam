@@ -48,7 +48,7 @@ fn run() -> opencv::Result<()> {
         videoio::VideoCapture::read(&mut cam, &mut next_frame)?;
         if next_frame.size()?.width > 0 {
             // resize and convert to gray scale frame
-            let (mut next_resized_frame, next_gray) = preprocess::preprocess(&next_frame)?;
+            let (next_resized_frame, next_gray) = preprocess::preprocess(&next_frame)?;
 
             // feature extraction
             let (next_kps, next_desc) =
@@ -60,7 +60,7 @@ fn run() -> opencv::Result<()> {
                 &next_resized_frame,
                 &next_kps,
                 &mut next_image_with_keypoints,
-                core::Scalar::from([0.0, 255.0, 0.0, 255.0]), // green
+                core::Scalar::from([255.0, 255.0, 0.0, 255.0]),
                 features2d::DrawMatchesFlags::DEFAULT,
             )?;
 
@@ -69,19 +69,19 @@ fn run() -> opencv::Result<()> {
 
             // draw matching lines
             imgproc::polylines(
-                &mut next_resized_frame,
+                &mut next_image_with_keypoints,
                 &pts,
                 false,
-                core::Scalar::from([0.0, 255.0, 0.0, 255.0]), // green
+                core::Scalar::from([200.0, 100.0, 100.0, 255.0]),
                 2,
                 8,
                 0,
             )?;
 
             // image show
-            highgui::imshow(window, &next_resized_frame)?;
+            highgui::imshow(window, &next_image_with_keypoints)?;
 
-            writer.write(&next_resized_frame)?;
+            writer.write(&next_image_with_keypoints)?;
             // key wait
             let key = highgui::wait_key(10)?;
             if key > 0 && key != 255 {
