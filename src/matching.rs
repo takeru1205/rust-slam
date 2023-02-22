@@ -16,7 +16,11 @@ pub fn knnmatch(
     next_kps: &types::VectorOfKeyPoint,
     desc: core::Mat,
     next_desc: &core::Mat,
-) -> opencv::Result<types::VectorOfVectorOfPoint> {
+) -> opencv::Result<(
+    types::VectorOfVectorOfPoint,
+    types::VectorOfPoint,
+    types::VectorOfPoint,
+)> {
     // KNN mathcing with BruteForce-Hamming(2)
     let mut matches = types::VectorOfVectorOfDMatch::new();
     let matcher = <dyn features2d::DescriptorMatcher>::create("BruteForce-Hamming(2)");
@@ -24,22 +28,26 @@ pub fn knnmatch(
 
     // filtering Lowe's ratio test
     let mut pts = types::VectorOfVectorOfPoint::new();
+    let mut from_pts = types::VectorOfPoint::new();
+    let mut to_pts = types::VectorOfPoint::new();
     for m in &matches {
         if m.get(0)?.distance < MATCH_THRESHOLD * m.get(1)?.distance {
             let idx = m.get(0)?.query_idx;
             let next_idx = m.get(0)?.train_idx;
             let kp = kps.get(idx as usize)?.pt();
             let next_kp = next_kps.get(next_idx as usize)?.pt();
-            let pt = types::VectorOfPoint::from(vec![
-                core::Point::new(kp.x.round() as i32, kp.y.round() as i32),
-                core::Point::new(next_kp.x.round() as i32, next_kp.y.round() as i32),
-            ]);
+            // To estimate affine
+            let from_pt = core::Point::new(kp.x.round() as i32, kp.y.round() as i32);
+            let to_pt = core::Point::new(next_kp.x.round() as i32, next_kp.y.round() as i32);
+            let pt = types::VectorOfPoint::from(vec![from_pt, to_pt]);
             // if unrealistic distance, do not recognize as keypoint
             if calc_distance(&pt).unwrap() >= 30.0 {
                 continue;
             };
             pts.push(pt);
+            from_pts.push(from_pt);
+            to_pts.push(to_pt);
         };
     }
-    Ok(pts)
+    Ok((pts, from_pts, to_pts))
 }

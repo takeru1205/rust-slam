@@ -1,4 +1,4 @@
-use opencv::{core, features2d, highgui, imgproc, prelude::*, videoio};
+use opencv::{calib3d, core, features2d, highgui, imgproc, prelude::*, videoio};
 mod feature_detect;
 mod matching;
 mod preprocess;
@@ -65,7 +65,7 @@ fn run() -> opencv::Result<()> {
             )?;
 
             // knn matching with Lowe's  ratio test filtering
-            let pts = matching::knnmatch(kps, &next_kps, desc, &next_desc)?;
+            let (pts, from_pts, to_pts) = matching::knnmatch(kps, &next_kps, desc, &next_desc)?;
 
             // draw matching lines
             imgproc::polylines(
@@ -76,6 +76,19 @@ fn run() -> opencv::Result<()> {
                 2,
                 8,
                 0,
+            )?;
+
+            // estimate affine
+            let mut inliers = core::Mat::default();
+            calib3d::estimate_affine_2d(
+                &from_pts,
+                &to_pts,
+                &mut inliers,
+                calib3d::RANSAC,
+                3.0,
+                2000,
+                0.99,
+                10,
             )?;
 
             // image show
