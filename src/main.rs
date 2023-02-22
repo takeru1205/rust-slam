@@ -16,6 +16,17 @@ fn run() -> opencv::Result<()> {
     videoio::VideoCapture::read(&mut cam, &mut frame)?;
     // resize and convert to gray scale frame
     let (resized_frame, gray) = preprocess::preprocess(&frame)?;
+
+    let frame_size = core::Size::new(960, 540);
+    println!("{:?}", frame_size);
+    let mut writer = videoio::VideoWriter::new(
+        "output.mp4",
+        videoio::VideoWriter::fourcc('h', '2', '6', '4')?,
+        cam.get(videoio::CAP_PROP_FPS)?,
+        frame_size,
+        true,
+    )?;
+
     println!(
         "cols: {}, rows: {}, channels, {}",
         &resized_frame.cols(),
@@ -69,6 +80,8 @@ fn run() -> opencv::Result<()> {
 
             // image show
             highgui::imshow(window, &next_resized_frame)?;
+
+            writer.write(&next_resized_frame)?;
             // key wait
             let key = highgui::wait_key(10)?;
             if key > 0 && key != 255 {
