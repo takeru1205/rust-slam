@@ -3,9 +3,9 @@ use opencv::{core, features2d, prelude::*, types};
 const NFEATURES: i32 = 500;
 const SCALE_FACTOR: f32 = 1.2;
 const NLEVELS: i32 = 8;
-const EDGE_THRESHOLD: i32 = 100;
-const FIRST_LEVEL: i32 = 1;
-const WTA_K: i32 = 3;
+const EDGE_THRESHOLD: i32 = 31;
+const FIRST_LEVEL: i32 = 0;
+const WTA_K: i32 = 2;
 const PATCH_SIZE: i32 = 31;
 const FAST_THRESHOLD: i32 = 20;
 
@@ -18,8 +18,12 @@ pub fn feature_detect(
     let mut desc = core::Mat::default();
 
     if frame.size()?.width > 0 {
-        // ORB detector
-        let next_detector = <dyn opencv::prelude::ORB>::create(
+        // feature detection by Good Features to Track
+        let detector = <dyn opencv::prelude::GFTTDetector>::create(1000, 0.01, 1.0, 3, false, 0.04);
+        detector?.detect(&gray, &mut kps, &core::no_array())?;
+
+        // ORB description
+        let descripter = <dyn opencv::prelude::ORB>::create(
             NFEATURES,
             SCALE_FACTOR,
             NLEVELS,
@@ -31,7 +35,7 @@ pub fn feature_detect(
             FAST_THRESHOLD,
         );
 
-        next_detector?.detect_and_compute(&gray, &core::no_array(), &mut kps, &mut desc, false)?;
+        descripter?.compute(&gray, &mut kps, &mut desc)?;
     }
     Ok((kps, desc))
 }
