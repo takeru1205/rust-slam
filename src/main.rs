@@ -1,4 +1,4 @@
-use opencv::{calib3d, core, features2d, highgui, imgproc, prelude::*, videoio};
+use opencv::{calib3d, core, features2d, highgui, imgproc, prelude::*, videoio, viz};
 mod feature_detect;
 mod matching;
 mod preprocess;
@@ -8,9 +8,18 @@ fn run() -> opencv::Result<()> {
     // paramters
     let camera_matrix = core::Mat::eye(3, 3, core::CV_64F)?;
 
-    // window
-    let window = "SLAM";
+    // camera window
+    let window = "camrera";
     highgui::named_window(window, 1)?;
+    // 3d window
+    let window_3d = "SLAM";
+    let mut viz_3d = viz::Viz3d::new(window_3d)?;
+    viz_3d.show_widget(
+        &window_3d,
+        &viz::Widget::from(viz::WCoordinateSystem::new(1.0)?),
+        core::Affine3d::default(),
+    )?;
+
     // read file
     let file_name = "test.mp4";
     let (mut cam, mut frame) = read::read_file(file_name)?;
@@ -110,6 +119,19 @@ fn run() -> opencv::Result<()> {
             )?;
             println!("{}", recover_pose_triangulated);
             println!("{:?}", triangulated_pts);
+
+            println!("aaa");
+            let wcld = viz::WCloud::new(
+                &triangulated_pts,
+                &core::Scalar::from([255.0, 255.0, 0.0, 255.0]),
+            )?;
+            println!("bbb");
+            viz_3d.show_widget(
+                &window_3d,
+                &viz::Widget::from(wcld),
+                core::Affine3d::default(),
+            )?;
+            println!("ccc");
 
             // image show
             highgui::imshow(window, &next_image_with_keypoints)?;
