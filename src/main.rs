@@ -5,6 +5,9 @@ mod preprocess;
 mod read;
 
 fn run() -> opencv::Result<()> {
+    // paramters
+    let camera_matrix = core::Mat::eye(3, 3, core::CV_64F)?;
+
     // window
     let window = "SLAM";
     highgui::named_window(window, 1)?;
@@ -78,18 +81,35 @@ fn run() -> opencv::Result<()> {
                 0,
             )?;
 
-            // estimate affine
-            let mut inliers = core::Mat::default();
-            calib3d::estimate_affine_2d(
+            // find essential matrix
+            let essential_mat = calib3d::find_essential_mat_matrix(
                 &from_pts,
                 &to_pts,
-                &mut inliers,
+                &camera_matrix,
                 calib3d::RANSAC,
-                3.0,
-                2000,
-                0.99,
-                10,
+                0.999,
+                1.0,
+                &mut core::no_array(),
             )?;
+
+            // recover pose and triangulated
+            let mut rvec = core::Mat::default();
+            let mut tvec = core::Mat::default();
+            let mut triangulated_pts = core::Mat::default();
+
+            let recover_pose_triangulated = calib3d::recover_pose_triangulated(
+                &essential_mat,
+                &from_pts,
+                &to_pts,
+                &camera_matrix,
+                &mut rvec,
+                &mut tvec,
+                20.0, // distance_threshold
+                &mut core::no_array(),
+                &mut triangulated_pts,
+            )?;
+            println!("{}", recover_pose_triangulated);
+            println!("{:?}", triangulated_pts);
 
             // image show
             highgui::imshow(window, &next_image_with_keypoints)?;
