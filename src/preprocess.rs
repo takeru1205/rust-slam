@@ -6,7 +6,13 @@ pub fn preprocess(frame: &core::Mat) -> opencv::Result<(core::Mat, core::Mat)> {
     imgproc::resize(&frame, &mut resized_frame, Size::default(), 0.5, 0.5, 1)?;
     // convert to gray scale
     let mut gray = Mat::default();
-    imgproc::cvt_color(&resized_frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+    imgproc::cvt_color(
+        &resized_frame,
+        &mut gray,
+        imgproc::COLOR_BGR2GRAY,
+        0,
+        core::AlgorithmHint::ALGO_HINT_DEFAULT,
+    )?;
 
     Ok((resized_frame, gray))
 }

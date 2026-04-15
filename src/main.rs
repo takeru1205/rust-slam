@@ -1,10 +1,15 @@
-use opencv::{calib3d, core, features2d, highgui, imgproc, prelude::*, videoio, viz};
+use anyhow::Result;
+use opencv::{calib3d, core, features2d, highgui, imgproc, prelude::*, videoio};
+use rerun;
+
 mod feature_detect;
 mod matching;
 mod preprocess;
 mod read;
+mod utils;
 
-fn run() -> opencv::Result<()> {
+
+fn run() -> Result<()> {
     // paramters
     let camera_matrix = core::Mat::eye(3, 3, core::CV_64F)?;
 
@@ -12,13 +17,7 @@ fn run() -> opencv::Result<()> {
     let window = "camrera";
     highgui::named_window(window, 1)?;
     // 3d window
-    let window_3d = "SLAM";
-    let mut viz_3d = viz::Viz3d::new(window_3d)?;
-    viz_3d.show_widget(
-        &window_3d,
-        &viz::Widget::from(viz::WCoordinateSystem::new(1.0)?),
-        core::Affine3d::default(),
-    )?;
+    let rec = rerun::RecordingStreamBuilder::new("rerun_example_minimal").spawn()?;
 
     // read file
     let file_name = "test.mp4";
@@ -77,7 +76,7 @@ fn run() -> opencv::Result<()> {
             )?;
 
             // knn matching with Lowe's  ratio test filtering
-            let (pts, from_pts, to_pts) = matching::knnmatch(kps, &next_kps, desc, &next_desc)?;
+            let (pts, from_pts, to_pts) = matching::knnmatch(&kps, &next_kps, &desc, &next_desc)?;
 
             // draw matching lines
             imgproc::polylines(
@@ -120,17 +119,10 @@ fn run() -> opencv::Result<()> {
             println!("{}", recover_pose_triangulated);
             println!("{:?}", triangulated_pts);
 
-            println!("aaa");
-            let wcld = viz::WCloud::new(
-                &triangulated_pts,
-                &core::Scalar::from([255.0, 255.0, 0.0, 255.0]),
-            )?;
-            println!("bbb");
-            viz_3d.show_widget(
-                &window_3d,
-                &viz::Widget::from(wcld),
-                core::Affine3d::default(),
-            )?;
+            // plot 3d points on Rerun
+            let points = utils::mat4xn_to_glam_points(&triangulated_pts)?;
+            rec.log("my_points", &rerun::Points3D::new(points))?;
+
             println!("ccc");
 
             // image show
@@ -151,9 +143,10 @@ fn run() -> opencv::Result<()> {
             break ();
         }
     }
+    rec.flush_blocking()?;
     Ok(())
 }
 
-fn main() {
-    run().unwrap()
+fn main() -> Result<()> {
+    run()
 }
