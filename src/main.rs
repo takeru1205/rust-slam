@@ -1,6 +1,15 @@
 use anyhow::Result;
-use opencv::{calib3d, core, features2d, highgui, imgproc, prelude::*, videoio};
+use opencv::{
+    calib3d,
+    core::{self, Mat},
+    features2d,
+    highgui,
+    imgproc,
+    prelude::*,
+    videoio,
+};
 use rerun;
+use rerun::components::Color;
 
 mod feature_detect;
 mod matching;
@@ -55,6 +64,7 @@ fn run() -> Result<()> {
     // feature extraction
     let (mut kps, mut desc) = feature_detect::feature_detect(&resized_frame, &gray)?;
     let mut next_frame = core::Mat::default();
+    let mut map_point_vector = Vec::<Vec<rerun::external::glam::Vec3>>::new();
     loop {
         videoio::VideoCapture::read(&mut cam, &mut next_frame)?;
         if next_frame.size()?.width > 0 {
@@ -114,16 +124,39 @@ fn run() -> Result<()> {
                 &mut tvec,
                 20.0, // distance_threshold
                 &mut core::no_array(),
-                &mut triangulated_pts,
+               &mut triangulated_pts,
             )?;
-            println!("{}", recover_pose_triangulated);
-            println!("{:?}", triangulated_pts);
 
             // plot 3d points on Rerun
-            let points = utils::mat4xn_to_glam_points(&triangulated_pts)?;
-            rec.log("my_points", &rerun::Points3D::new(points))?;
+            // 点群とカメラの移動量を合わせる
+            let to_points = utils::mat4xn_to_glam_points_with_move(
+                &triangulated_pts,
+                &rvec,
+                &tvec,
+            )?;
+            let from_points = utils::mat4xn_to_glam_points(&triangulated_pts)?;
+            println!("*********************");
 
-            println!("ccc");
+            // map_point_vector.push(points.to_vec());
+            // rec.log(
+            //     "my_points",
+            //     &rerun::Points3D::new(
+            //         // merge point vectors
+            //         map_point_vector.iter().flat_map(|s| s).cloned().collect::<Vec<rerun::external::glam::Vec3>>()
+            //     ),
+            // )?;
+
+            rec.log(
+                "my_points/from",
+                &rerun::Points3D::new(from_points.clone())
+                    .with_colors(std::iter::repeat_n(Color::WHITE, from_points.len())),
+            )?;
+
+            rec.log(
+                "my_points/to",
+                &rerun::Points3D::new(to_points.clone())
+                    .with_colors(std::iter::repeat_n(Color::BLACK, to_points.len())),
+            )?;
 
             // image show
             highgui::imshow(window, &next_image_with_keypoints)?;
